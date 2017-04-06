@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     tools:context="com.example.litan.myapplication.MainActivity">
 
+    <!--测试按钮-->
     <ImageButton
         android:id="@+id/button_1"
         android:layout_width="fill_parent"
@@ -15,6 +16,7 @@
         tools:layout_editor_absoluteX="8dp"
         android:background="#f0f333"
         tools:ignore="MissingConstraints" />
+    <!--跳转按钮-->
     <Button
         android:id="@+id/change_button"
         android:layout_below="@id/button_1"
@@ -24,6 +26,7 @@
         android:text="跳转至下一界面"
         android:textSize="20dp" />
 
+    <!--测试跑马灯字体-->
     <com.example.litan.myapplication.MarqueueText
         android:textSize="20dp"
         android:id="@+id/textview1"

@@ -198,12 +198,15 @@ public class page extends Activity {
 
     private String onLoad(){
         SharedPreferences setting = getSharedPreferences(PREFS_NAME, 0);
+        //get IP from mPreferences
         String mPreferences = setting.getString("preferences", DEFAULT_IP);
         return mPreferences;
     }
 
     private void onSave(String save){
         if(TextUtils.isEmpty(save)){
+            //Length = 0
+            // null
             setPreferences(DEFAULT_IP);
         }
         else {
@@ -212,6 +215,7 @@ public class page extends Activity {
     }
 
     private void setPreferences(String mPreferences){
+        //setting configuration parameters
         SharedPreferences setting = getSharedPreferences(PREFS_NAME,0);
         SharedPreferences.Editor editor = setting.edit();
         editor.putString("preferences", mPreferences);
@@ -242,14 +246,15 @@ public class page extends Activity {
     }
 
     public boolean onCreateOptionsMenu(Menu menu){
-        menu.add(0, 1, 1, "close");
-        menu.add(0, 2, 2, "restart");
+        menu.add(0, 1, 1, "poweroff");
+        menu.add(0, 2, 2, "reboot");
         menu.add(0, 3, 3, "exit");
         return super.onCreateOptionsMenu(menu);
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            //
             case 1:
                 tcpClient tcp = new tcpClient("sudo poweroff");
                 tcp.start();
@@ -267,6 +272,7 @@ public class page extends Activity {
 
     Handler mHandler = new Handler() {
         public void handleMessage(Message msg) {
+            //Judge connection state
             switch (msg.what) {
                 case CONNENTED:
                     logMsg += "Server Connected\n";

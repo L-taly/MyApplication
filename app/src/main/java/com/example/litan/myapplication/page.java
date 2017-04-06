@@ -1,13 +1,23 @@
 package com.example.litan.myapplication;
 
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.graphics.Paint;
 import android.net.IpPrefix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.app.Activity;
+import android.preference.DialogPreference;
+import android.text.TextUtils;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.Button;
@@ -19,6 +29,7 @@ import android.widget.TextView;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
@@ -59,6 +70,8 @@ public class page extends Activity {
         setContentView(R.layout.page1);
         mContext = this;
         findviews();
+        setonclick();
+        init();
 
         //close the page
         Close = (Button) findViewById(R.id.btnClose);
@@ -79,6 +92,16 @@ public class page extends Activity {
         clean = (Button) findViewById(R.id.clean);
         send = (Button) findViewById(R.id.send);
         log = (TextView) findViewById(R.id.log);
+    }
+
+    public void init(){
+        log.setMovementMethod(ScrollingMovementMethod.getInstance());
+        logMsg = log.getText().toString();
+        socket = new Socket();
+        ip = onLoad();
+        if(ip != null){
+            ipEdit.setText(ip);
+        }
     }
 
     public void setonclick(){
@@ -127,7 +150,16 @@ public class page extends Activity {
     }
 
     //get message from server
-    public String RevciveMessage()
+    public String RevciveMsg(Socket socket)throws IOException{
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String line;
+        String txt = "";
+        while ((line = reader.readLine()) != null){
+            txt += line + "\n";
+        }
+        reader.close();
+        return txt;
+    }
 
     public class tcpClient extends Thread {
         String commandstring;
@@ -135,10 +167,102 @@ public class page extends Activity {
         public tcpClient(){
             commandstring = "1s";
         }
+
         public tcpClient(String command){
             commandstring = command;
         }
 
+        public void run(){
+            String recv;
+            try{
+                ConnectToServer();
+                //send command to server
+                SendMsg(socket, commandstring);
+                //recieve massage from server
+                recv = RevciveMsg(socket);
+                if(recv != null){
+                    logMsg += recv;
+                    writer.close();
+                    socket.close();
+                    Message msg = new Message();
+                    msg.what = UPDATALOG;
+                    mHandler.sendMessage(msg);
+                }
+            }catch (UnknownHostException e){
+                e.printStackTrace();
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String onLoad(){
+        SharedPreferences setting = getSharedPreferences(PREFS_NAME, 0);
+        String mPreferences = setting.getString("preferences", DEFAULT_IP);
+        return mPreferences;
+    }
+
+    private void onSave(String save){
+        if(TextUtils.isEmpty(save)){
+            setPreferences(DEFAULT_IP);
+        }
+        else {
+            setPreferences(save);
+        }
+    }
+
+    private void setPreferences(String mPreferences){
+        SharedPreferences setting = getSharedPreferences(PREFS_NAME,0);
+        SharedPreferences.Editor editor = setting.edit();
+        editor.putString("preferences", mPreferences);
+        editor.commit();
+    }
+
+    public boolean onKeyDown(int KeyCode, KeyEvent event){
+        if(event.getKeyCode() == KeyEvent.KEYCODE_BACK){
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("PC Control");
+            builder.setMessage("exit ?");
+            builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    onSave(ipEdit.getText().toString());
+                    finish();
+                }
+            });
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener(){
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            builder.show();
+        }
+        return super.onKeyDown(KeyCode, event);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu){
+        menu.add(0, 1, 1, "close");
+        menu.add(0, 2, 2, "restart");
+        menu.add(0, 3, 3, "exit");
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case 1:
+                tcpClient tcp = new tcpClient("sudo poweroff");
+                tcp.start();
+                return true;
+            case 2:
+                tcp = new tcpClient("sudo reboot");
+                tcp.start();
+                return true;
+            case 3:
+                finish();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     Handler mHandler = new Handler() {
